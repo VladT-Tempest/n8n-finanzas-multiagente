@@ -1,0 +1,13 @@
+# Secretos y variables de entorno
+.env
+*.env
+!.env.example
+
+# Datos de contenedores (si montas volúmenes locales)
+postgres_data/
+n8n_data/
+
+# Sistema
+.DS_Store
+*.log
+reiniciar-tunel.sh

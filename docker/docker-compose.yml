@@ -1,0 +1,46 @@
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: n8n-finanzas
+    ports:
+      - "5680:5678"
+    environment:
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE}
+      - TZ=${TZ}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - WEBHOOK_URL=https://listings-eligible-conscious-warming.trycloudflare.com  # this address changes every time 
+      - N8N_PROTOCOL=https
+    volumes:
+      - n8n_finanzas_data:/home/node/.n8n
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:16
+    container_name: postgres-finanzas
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_finanzas_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  adminer:
+    image: adminer
+    container_name: adminer-finanzas
+    ports:
+      - "8081:8080"
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+volumes:
+  n8n_finanzas_data:
+    name: n8n_finanzas_data
+  postgres_finanzas_data:
+    name: postgres_finanzas_data
