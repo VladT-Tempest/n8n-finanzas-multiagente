@@ -1,0 +1,236 @@
+{
+  "name": "Agente Registro",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "chat_id",
+              "type": "number"
+            },
+            {
+              "name": "mensaje"
+            },
+            {
+              "name": "nombre"
+            },
+            {
+              "name": "username"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "343aeef0-66f7-4813-b24e-711c2ad25e07",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.mensaje }}\n\n(Contexto: hoy es {{ $now.format('yyyy-MM-dd') }})",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "monto",
+              "type": "number",
+              "description": "El valor numérico del gasto, sin símbolos"
+            },
+            {
+              "name": "categoria",
+              "description": "Una de: Alimentación, Transporte, Vivienda, Entretenimiento, Salud, Educación, Ropa, Servicios, Otros"
+            },
+            {
+              "name": "descripcion",
+              "description": "Descripción corta del gasto"
+            },
+            {
+              "name": "fecha",
+              "description": "Fecha en formato YYYY-MM-DD. Si no se especifica, usa la fecha de hoy"
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "Eres un extractor de datos de gastos personales. Tu trabajo es analizar\nel mensaje del usuario y extraer la información del gasto.\n\nReglas:\n- El monto debe ser un número entero o decimal, sin símbolos de moneda.\n  \"50mil\" o \"50k\" significa 50000. \"1.5 millones\" significa 1500000.\n- La categoría DEBE ser exactamente una de estas:\n  Alimentación, Transporte, Vivienda, Entretenimiento, Salud,\n  Educación, Ropa, Servicios, Otros.\n  Mapea inteligentemente: \"mercado/comida/restaurante\" → Alimentación,\n  \"uber/gasolina/bus\" → Transporte, \"arriendo/luz/agua\" → Vivienda o Servicios.\n  Si no encaja en ninguna, usa \"Otros\".\n- La fecha en formato YYYY-MM-DD. \"ayer\", \"hoy\", \"el lunes\" deben\n  convertirse a fecha real. Si no se menciona, usa la fecha actual.\n- La descripción es un resumen corto de en qué se gastó.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "07b3b2df-d1c7-4096-b647-61c34e93e5af",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-6",
+          "cachedResultName": "Claude Sonnet 4.6"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.4,
+      "position": [
+        144,
+        208
+      ],
+      "id": "d6f38734-b01d-402c-bad7-df8df21340eb",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "CzAeinLP4xzX8KXH",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO gastos (chat_id, categoria_id, monto, descripcion, fecha)\nVALUES (\n  $1,\n  (SELECT id FROM categorias WHERE nombre = $2),\n  $3,\n  $4,\n  $5\n)\nRETURNING id, monto, fecha;",
+        "options": {
+          "queryReplacement": "=$1  →  {{ $('When Executed by Another Workflow').item.json.chat_id }}\n$2  →  {{ $('Information Extractor').item.json.output.categoria }}\n$3  →  {{ $('Information Extractor').item.json.output.monto }}\n$4  →  {{ $('Information Extractor').item.json.output.descripcion }}\n$5  →  {{ $('Information Extractor').item.json.output.fecha }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        688,
+        0
+      ],
+      "id": "a6a0d37f-f1a1-41f7-8fd7-a2a07a49f718",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "lu2x9m7aXmCnZ47U",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO usuarios (chat_id, nombre, username)\nVALUES ($1, $2, $3)\nON CONFLICT (chat_id) DO NOTHING;",
+        "options": {
+          "queryReplacement": "=$1  →  {{ $('When Executed by Another Workflow').item.json.chat_id }}\n$2  →  {{ $('When Executed by Another Workflow').item.json.nombre }}\n$3  →  {{ $('When Executed by Another Workflow').item.json.username }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        512,
+        0
+      ],
+      "id": "02f8ce1c-721d-46fe-bfd0-f5eb0ba8d679",
+      "name": "Upsert Usuario",
+      "credentials": {
+        "postgres": {
+          "id": "lu2x9m7aXmCnZ47U",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "28bae5fd-1279-4714-8aeb-b5ce06d9a634",
+              "name": "=respuesta",
+              "value": "=✅ Registré tu gasto de ${{ $('Information Extractor').item.json.output.monto }} en {{ $('Information Extractor').item.json.output.categoria }} ({{ $('Information Extractor').item.json.output.descripcion }}), fecha {{ $('Information Extractor').item.json.output.fecha }}.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        0
+      ],
+      "id": "37c29d3b-399f-4f62-a0b4-56403d4ee3d0",
+      "name": "Salida"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Upsert Usuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Usuario": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Salida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "cbb76af7-8767-4c44-b695-c72cc9f9b64b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9d589c71d1a39fd272d0790528348c24eb68a5e0d5977a46f4bf580a0a094499"
+  },
+  "nodeGroups": [],
+  "id": "WUlvdw6tOmrKlH1I",
+  "tags": []
+}

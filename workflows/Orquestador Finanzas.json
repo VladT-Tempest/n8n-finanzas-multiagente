@@ -1,0 +1,304 @@
+{
+  "name": "Orquestador Finanzas",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "eacf0485-b3d1-43b3-a5da-d85e006abe10",
+      "name": "Telegram Trigger",
+      "webhookId": "40460de9-7fe8-4268-aa2b-de81f29e05dd",
+      "credentials": {
+        "telegramApi": {
+          "id": "0cAHQpjAXy4TVkrt",
+          "name": "Bot Finanzas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.mensaje }}",
+        "options": {
+          "systemMessage": "Eres un asistente financiero personal que ayuda a registrar y consultar gastos vía Telegram.\n\nTienes acceso a herramientas (tools). Entiende qué quiere el usuario y usa la herramienta adecuada:\n- Si menciona un gasto que hizo (ej: \"gasté 50mil en mercado\", \"pagué 30000 de uber\"), usa la herramienta \"registrar_gasto\".\n\nDatos del usuario actual:\n- chat_id: {{ $('Normalizar').item.json.chat_id }}\n- nombre: {{ $('Normalizar').item.json.nombre }}\n\nResponde siempre de forma amable y concisa en español. Cuando registres un gasto, confirma lo que guardaste."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "fbfcc95c-f36b-4f99-9327-dcc13f6d67fe",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-4-6",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 4.6"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.4,
+      "position": [
+        288,
+        208
+      ],
+      "id": "e632b14b-1d7a-416c-920d-2e6bdd80ff17",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "CzAeinLP4xzX8KXH",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f5b4548a-6c55-484c-aa6d-66e1b4d87f2a",
+              "name": "chat_id",
+              "value": "={{ $json.message.chat.id }}",
+              "type": "string"
+            },
+            {
+              "id": "3024d2d8-5c75-4013-98b6-31e2451d5512",
+              "name": "nombre",
+              "value": "={{ $json.message.from.first_name }}",
+              "type": "string"
+            },
+            {
+              "id": "6beabbce-ff3f-47ba-9d0a-8f3bef43f515",
+              "name": "username",
+              "value": "={{ $json.message.from.username }}",
+              "type": "string"
+            },
+            {
+              "id": "ae343492-ac10-493a-97f6-dbedc36d4e8f",
+              "name": "mensaje",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "daa9548d-6d68-46ec-b0b7-5f45972cd5c6",
+      "name": "Normalizar"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Normalizar').item.json.chat_id }}",
+        "contextWindowLength": "=5"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        432,
+        208
+      ],
+      "id": "fbeb9bd0-374b-4b80-aae8-453c57a66f1b",
+      "name": "Memoria"
+    },
+    {
+      "parameters": {
+        "description": "Registra un gasto del usuario en la base de datos. Úsala cuando el usuario mencione que gastó o pagó dinero en algo. Recibe el chat_id, el mensaje, el nombre y el username del usuario.",
+        "workflowId": {
+          "__rl": true,
+          "value": "WUlvdw6tOmrKlH1I",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/WUlvdw6tOmrKlH1I",
+          "cachedResultName": "Agente Registro"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "chat_id": "={{ $('Normalizar').item.json.chat_id }}",
+            "mensaje": "={{ $('Normalizar').item.json.mensaje }}",
+            "nombre": "={{ $('Normalizar').item.json.nombre }}",
+            "username": "={{ $('Normalizar').item.json.username }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "mensaje",
+              "displayName": "mensaje",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "nombre",
+              "displayName": "nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "username",
+              "displayName": "username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        576,
+        208
+      ],
+      "id": "2b58ab11-992b-4abd-a297-017b9b4e1bca",
+      "name": "registrar_gasto"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Normalizar').item.json.chat_id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "disable_notification": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        0
+      ],
+      "id": "759910a2-69e5-48cb-98dd-59f0506370d1",
+      "name": "Send a text message",
+      "webhookId": "2a3d60db-36e2-469e-9acd-c81822b7d8ee",
+      "credentials": {
+        "telegramApi": {
+          "id": "0cAHQpjAXy4TVkrt",
+          "name": "Bot Finanzas"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalizar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalizar": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "registrar_gasto": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "31a5ad3a-1cab-4c80-bb52-45fdc6984746",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9d589c71d1a39fd272d0790528348c24eb68a5e0d5977a46f4bf580a0a094499"
+  },
+  "nodeGroups": [],
+  "id": "b1d4oPboICW6MlEX",
+  "tags": []
+}
