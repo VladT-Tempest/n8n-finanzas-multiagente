@@ -19,8 +19,8 @@
       "webhookId": "40460de9-7fe8-4268-aa2b-de81f29e05dd",
       "credentials": {
         "telegramApi": {
-          "id": "0cAHQpjAXy4TVkrt",
-          "name": "Bot Finanzas"
+          "id": "gH2zFe6jsv2v98AH",
+          "name": "Bot Finanzas v2"
         }
       }
     },
@@ -29,7 +29,7 @@
         "promptType": "define",
         "text": "={{ $json.mensaje }}",
         "options": {
-          "systemMessage": "Eres un asistente financiero personal que ayuda a registrar y consultar gastos vía Telegram.\n\nTienes acceso a herramientas (tools). Entiende qué quiere el usuario y usa la herramienta adecuada:\n- Si menciona un gasto que hizo (ej: \"gasté 50mil en mercado\", \"pagué 30000 de uber\"), usa la herramienta \"registrar_gasto\".\n\nDatos del usuario actual:\n- chat_id: {{ $('Normalizar').item.json.chat_id }}\n- nombre: {{ $('Normalizar').item.json.nombre }}\n\nResponde siempre de forma amable y concisa en español. Cuando registres un gasto, confirma lo que guardaste."
+          "systemMessage": "Eres un asistente financiero personal que ayuda a registrar y consultar gastos vía Telegram.\n\nTienes acceso a herramientas (tools). Entiende qué quiere el usuario y usa la herramienta adecuada:\n- Si menciona un gasto que hizo (ej: \"gasté 50mil en mercado\", \"pagué 30000 de uber\"), usa la herramienta \"registrar_gasto\".\n\nDatos del usuario actual:\n- chat_id: {{ $('Normalizar').item.json.chat_id }}\n- nombre: {{ $('Normalizar').item.json.nombre }}\n\n- Si el usuario REGISTRA un gasto (ej: \"gasté 20mil en taxi\") → usa registrar_gasto\n- Si el usuario PREGUNTA por sus gastos, saldos o resúmenes (ej: \"¿cuánto llevo este mes?\") → usa consultar_gastos\n\nResponde siempre de forma amable y concisa en español. Cuando registres un gasto, confirma lo que guardaste."
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -186,8 +186,8 @@
       "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
       "typeVersion": 2.2,
       "position": [
-        576,
-        208
+        496,
+        368
       ],
       "id": "2b58ab11-992b-4abd-a297-017b9b4e1bca",
       "name": "registrar_gasto"
@@ -213,10 +213,60 @@
       "webhookId": "2a3d60db-36e2-469e-9acd-c81822b7d8ee",
       "credentials": {
         "telegramApi": {
-          "id": "0cAHQpjAXy4TVkrt",
-          "name": "Bot Finanzas"
+          "id": "gH2zFe6jsv2v98AH",
+          "name": "Bot Finanzas v2"
         }
       }
+    },
+    {
+      "parameters": {
+        "description": "Consulta gastos del usuario: totales, por categoría, desgloses y listados.\n     Úsala cuando el usuario PREGUNTA por sus gastos, saldos o resúmenes.",
+        "workflowId": {
+          "__rl": true,
+          "value": "tyb0mneJYjiKInSJ",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/tyb0mneJYjiKInSJ",
+          "cachedResultName": "Agente Consultas"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "chat_id": "={{ $('Normalizar').item.json.chat_id }}",
+            "pregunta": "={{ $('Normalizar').item.json.mensaje }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "number"
+            },
+            {
+              "id": "pregunta",
+              "displayName": "pregunta",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        656,
+        368
+      ],
+      "id": "737d9617-12db-439a-8e88-0a0138fc9547",
+      "name": "consultar_gastos"
     }
   ],
   "pinData": {},
@@ -286,14 +336,25 @@
           }
         ]
       ]
+    },
+    "consultar_gastos": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "31a5ad3a-1cab-4c80-bb52-45fdc6984746",
+  "versionId": "54683dd5-d344-4aec-a4b7-3f53b01420ea",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "9d589c71d1a39fd272d0790528348c24eb68a5e0d5977a46f4bf580a0a094499"

@@ -1,0 +1,267 @@
+{
+  "name": "Agente Consultas",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "chat_id",
+              "type": "number"
+            },
+            {
+              "name": "pregunta"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e2d01598-47bf-46ca-b68d-6561ba54e1a1",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.pregunta }}\n   (Contexto: hoy es {{ $now.format('yyyy-MM-dd') }})",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "tipo_consulta",
+              "description": "total_periodo, total_categoria, desglose_categorias o lista_gastos"
+            },
+            {
+              "name": "fecha_inicio",
+              "description": "fecha de inicio en formato yyyy-MM-dd"
+            },
+            {
+              "name": "fecha_fin",
+              "description": "fecha de fin en formato yyyy-MM-dd"
+            },
+            {
+              "name": "categoria",
+              "description": "una categoría exacta o vacío"
+            },
+            {
+              "name": "limite",
+              "description": "cantidad para lista_gastos, si aplica"
+            }
+          ]
+        },
+        "options": {
+          "systemPromptTemplate": "Eres un clasificador de consultas de gastos. Analiza la pregunta y devuelve los parámetros.\n\ntipo_consulta:\n- total_periodo: cuánto gastó en un rango (\"¿cuánto llevo este mes?\", \"¿cuánto gasté ayer?\")\n- total_categoria: cuánto gastó en UNA categoría (\"¿cuánto en transporte?\")\n- desglose_categorias: en qué gasta más, distribución (\"¿en qué gasto más?\")\n- lista_gastos: ver gastos individuales (\"muéstrame mis últimos gastos\")\n\nCalcula fecha_inicio y fecha_fin reales según la fecha de hoy:\n- \"hoy\" → ambas = hoy\n- \"ayer\" → ambas = ayer\n- \"esta semana\" → lunes a hoy\n- \"este mes\" → día 1 del mes a hoy\n- sin periodo → primer día del mes a hoy\n\ncategoria: solo si menciona una. Valores EXACTOS: Alimentación, Transporte, Vivienda, Entretenimiento, Salud, Educación, Ropa, Servicios, Otros. Si no menciona, null.\n\nlimite: para lista_gastos, cuántos pide (default 10). Otros tipos: null."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "35253161-9eab-46a3-9d13-879e7b5093dd",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-6",
+          "cachedResultName": "Claude Sonnet 4.6"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.5,
+      "position": [
+        144,
+        208
+      ],
+      "id": "007775fc-859d-47cc-b662-5992548d8404",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "CzAeinLP4xzX8KXH",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const e = $input.first().json.output;\nconst chatId = $('When Executed by Another Workflow').first().json.chat_id;\n\nlet query, params;\n\nswitch (e.tipo_consulta) {\n  case 'total_categoria':\n    query = `SELECT COALESCE(SUM(g.monto),0) AS total, COUNT(*) AS num\n             FROM gastos g JOIN categorias c ON g.categoria_id = c.id\n             WHERE g.chat_id = $1 AND c.nombre = $2 AND g.fecha BETWEEN $3 AND $4`;\n    params = [chatId, e.categoria, e.fecha_inicio, e.fecha_fin];\n    break;\n  case 'desglose_categorias':\n    query = `SELECT c.nombre, c.emoji, SUM(g.monto) AS total, COUNT(*) AS num\n             FROM gastos g JOIN categorias c ON g.categoria_id = c.id\n             WHERE g.chat_id = $1 AND g.fecha BETWEEN $2 AND $3\n             GROUP BY c.nombre, c.emoji ORDER BY total DESC`;\n    params = [chatId, e.fecha_inicio, e.fecha_fin];\n    break;\n  case 'lista_gastos':\n    query = `SELECT g.monto, g.descripcion, g.fecha, c.nombre AS categoria, c.emoji\n             FROM gastos g LEFT JOIN categorias c ON g.categoria_id = c.id\n             WHERE g.chat_id = $1\n             ORDER BY g.fecha DESC, g.id DESC LIMIT $2`;\n    params = [chatId, e.limite || 10];\n    break;\n  default: // total_periodo\n    query = `SELECT COALESCE(SUM(monto),0) AS total, COUNT(*) AS num\n             FROM gastos WHERE chat_id = $1 AND fecha BETWEEN $2 AND $3`;\n    params = [chatId, e.fecha_inicio, e.fecha_fin];\n}\n\nreturn [{ json: { query, params } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "49b2552b-c391-4e4b-8cc3-20b3823934b9",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.query }}",
+        "options": {
+          "queryReplacement": "={{ $json.params }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        768,
+        0
+      ],
+      "id": "68f55ee9-5d4a-4982-9910-3b46e5f70458",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "lu2x9m7aXmCnZ47U",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Pregunta del usuario: {{ $('When Executed by Another Workflow').first().json.pregunta }}\n   \n   Resultado de la consulta (JSON): {{ JSON.stringify($json) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=Eres un asistente financiero. Te doy la pregunta del usuario y el resultado SQL.    Responde de forma clara y breve en español.    Formatea SIEMPRE los montos con separador de miles y símbolo: $30.000 (no 30000).    Usa solo HTML de Telegram: <b>, <i>, <code>. Nada de <ul>, <p>, <div>.    Si no hay datos (total 0 o lista vacía), dilo amablemente."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        976,
+        0
+      ],
+      "id": "49b1838a-2a54-4fe3-9ab1-deab4fb0b788",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-6",
+          "cachedResultName": "Claude Sonnet 4.6"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.5,
+      "position": [
+        1024,
+        208
+      ],
+      "id": "77f19de5-e8da-49f6-a05f-d0650a0aa21c",
+      "name": "Anthropic Chat Model1",
+      "credentials": {
+        "anthropicApi": {
+          "id": "CzAeinLP4xzX8KXH",
+          "name": "Anthropic account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "When Executed by Another Workflow": [
+      {
+        "json": {
+          "chat_id": 6986002891,
+          "pregunta": "¿cuánto llevo gastado este mes?"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "3a637ae0-c8e0-42c1-a22d-108a4bd4b194",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9d589c71d1a39fd272d0790528348c24eb68a5e0d5977a46f4bf580a0a094499"
+  },
+  "nodeGroups": [],
+  "id": "tyb0mneJYjiKInSJ",
+  "tags": []
+}

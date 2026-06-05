@@ -55,7 +55,7 @@
           ]
         },
         "options": {
-          "systemPromptTemplate": "Eres un extractor de datos de gastos personales. Tu trabajo es analizar\nel mensaje del usuario y extraer la información del gasto.\n\nReglas:\n- El monto debe ser un número entero o decimal, sin símbolos de moneda.\n  \"50mil\" o \"50k\" significa 50000. \"1.5 millones\" significa 1500000.\n- La categoría DEBE ser exactamente una de estas:\n  Alimentación, Transporte, Vivienda, Entretenimiento, Salud,\n  Educación, Ropa, Servicios, Otros.\n  Mapea inteligentemente: \"mercado/comida/restaurante\" → Alimentación,\n  \"uber/gasolina/bus\" → Transporte, \"arriendo/luz/agua\" → Vivienda o Servicios.\n  Si no encaja en ninguna, usa \"Otros\".\n- La fecha en formato YYYY-MM-DD. \"ayer\", \"hoy\", \"el lunes\" deben\n  convertirse a fecha real. Si no se menciona, usa la fecha actual.\n- La descripción es un resumen corto de en qué se gastó.\n"
+          "systemPromptTemplate": "Eres un extractor de datos de gastos personales. Tu trabajo es analizar el mensaje del usuario y extraer la información del gasto.\n\nReglas:\n- El monto debe ser un número entero o decimal, sin símbolos de moneda.\n  \"50mil\" o \"50k\" significa 50000. \"1.5 millones\" significa 1500000.\n- La categoría DEBE ser exactamente una de estas:\n  Alimentación, Transporte, Vivienda, Entretenimiento, Salud,\n  Educación, Ropa, Servicios, Otros.\n  Mapea inteligentemente: \"mercado/comida/restaurante\" → Alimentación,\n  \"uber/gasolina/bus\" → Transporte, \"arriendo/luz/agua\" → Vivienda o Servicios.\n  Si no encaja en ninguna, usa \"Otros\".\n- La fecha en formato YYYY-MM-DD. \"ayer\", \"hoy\", \"el lunes\" deben\n  convertirse a fecha real. Si no se menciona, usa la fecha actual.\n- La descripción es un resumen corto de en qué se gastó.\n"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.informationExtractor",
@@ -225,7 +225,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "cbb76af7-8767-4c44-b695-c72cc9f9b64b",
+  "versionId": "83bfa052-a28c-4af5-9acd-787533616cdd",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "9d589c71d1a39fd272d0790528348c24eb68a5e0d5977a46f4bf580a0a094499"
