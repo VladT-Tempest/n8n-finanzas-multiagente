@@ -9,7 +9,8 @@ services:
       - TZ=${TZ}
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
       - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
-      - WEBHOOK_URL=https://bolt-architecture-saying-represent.trycloudflare.com  # this address changes every time 
+      # This changes every time ngrok or Cloudflare 
+      - WEBHOOK_URL=https://ons-selling-prophet-monsters.trycloudflare.com
       - N8N_PROTOCOL=https
     volumes:
       - n8n_finanzas_data:/home/node/.n8n
@@ -41,6 +42,6 @@ services:
 
 volumes:
   n8n_finanzas_data:
-    name: n8n_finanzas_data
+    external: true
   postgres_finanzas_data:
-    name: postgres_finanzas_data
+    external: true
